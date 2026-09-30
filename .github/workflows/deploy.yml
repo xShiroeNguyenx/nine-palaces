@@ -1,0 +1,43 @@
+name: Deploy
+
+# Chạy tay (hoặc bật `push` khi đã cấu hình tài khoản Cloudflare).
+# Cần secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID; biến repo: VITE_API_URL, PAGES_PROJECT, VITE_ONLINE (tuỳ chọn).
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - name: Migrate D1
+        working-directory: apps/api
+        run: npx wrangler d1 migrations apply nine-palaces --remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Deploy API (Workers)
+        working-directory: apps/api
+        run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Build web
+        run: pnpm --filter @np/web build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          # Để trống = chế độ online tắt (bản phát hành đầu). Đặt "1" để bật lại.
+          VITE_ONLINE: ${{ vars.VITE_ONLINE }}
+      - name: Deploy web (Pages)
+        working-directory: apps/web
+        run: npx wrangler pages deploy dist --project-name ${{ vars.PAGES_PROJECT }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

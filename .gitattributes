@@ -1,0 +1,10 @@
+# Chuẩn hoá xuống dòng LF trong repo
+* text=auto eol=lf
+
+# Tệp nhị phân: không đổi xuống dòng, không diff
+*.png binary
+*.webp binary
+*.gif binary
+*.jpg binary
+*.ico binary
+*.woff2 binary

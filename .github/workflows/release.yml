@@ -1,0 +1,94 @@
+name: Release
+
+# Tạo GitHub Release khi đẩy tag dạng vX.Y.Z (ví dụ v0.1.0).
+# Các bước: kiểm tra tag khớp version trong package.json → typecheck, test, build
+# → nén bản web thành zip → tạo Release với ghi chú lấy từ CHANGELOG.md.
+# Workflow này không deploy; deploy lên Cloudflare dùng workflow "Deploy" (chạy tay).
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag đã có sẵn để tạo lại Release (ví dụ v0.1.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & tạo Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Tag phải khớp version trong package.json
+        run: |
+          PKG="v$(node -p "require('./package.json').version")"
+          if [ "$PKG" != "$TAG" ]; then
+            echo "::error::Tag $TAG không khớp version $PKG trong package.json"
+            exit 1
+          fi
+
+      - name: Cài phụ thuộc
+        run: pnpm install --frozen-lockfile
+
+      - name: Kiểm tra kiểu
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build web
+        run: pnpm build
+        env:
+          # Để trống ở bản phát hành đầu (chế độ online tắt). Đặt biến repo khi bật online.
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_ONLINE: ${{ vars.VITE_ONLINE }}
+
+      - name: Nén bản web
+        run: |
+          cd apps/web/dist
+          zip -qr "$GITHUB_WORKSPACE/cuu-cung-web-$TAG.zip" .
+          cd "$GITHUB_WORKSPACE"
+          sha256sum "cuu-cung-web-$TAG.zip" > "cuu-cung-web-$TAG.zip.sha256"
+
+      # Ghi chú phát hành = mục "## [X.Y.Z]" tương ứng trong CHANGELOG.md
+      - name: Lấy ghi chú phát hành
+        run: |
+          VER="${TAG#v}"
+          awk -v ver="$VER" '
+            index($0, "## [" ver "]") == 1 { on = 1; next }
+            on && /^## \[/ { exit }
+            on && /^\[[^]]+\]: / { exit }
+            on { print }
+          ' CHANGELOG.md > release-notes.md
+
+      - name: Tạo GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ARGS=(--title "Cửu Cung $TAG")
+          if grep -q '[^[:space:]]' release-notes.md; then
+            ARGS+=(--notes-file release-notes.md)
+          else
+            echo "::warning::CHANGELOG.md chưa có mục cho $TAG, dùng ghi chú tự động của GitHub"
+            ARGS+=(--generate-notes)
+          fi
+          # Bản 0.x đánh dấu là pre-release
+          case "$TAG" in v0.*) ARGS+=(--prerelease) ;; esac
+          gh release create "$TAG" "${ARGS[@]}" \
+            "cuu-cung-web-$TAG.zip" "cuu-cung-web-$TAG.zip.sha256"

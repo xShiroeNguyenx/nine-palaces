@@ -1,0 +1,22 @@
+{
+  "name": "nine-palaces",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Nine Palaces — Cửu Cung: game cờ tướng trên web",
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "dev:web": "pnpm --filter @np/web dev",
+    "dev:api": "pnpm --filter @np/api dev",
+    "db:migrate:local": "pnpm --filter @np/api db:migrate:local",
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "build": "pnpm --filter @np/web build",
+    "deploy:api": "pnpm --filter @np/api deploy",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}

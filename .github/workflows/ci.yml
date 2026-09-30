@@ -1,0 +1,53 @@
+name: CI
+
+# Kiểm tra mọi thay đổi: kiểu TypeScript, test, build bản web.
+# Chạy khi push lên main, khi mở/cập nhật pull request, hoặc chạy tay.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Push mới lên cùng nhánh thì huỷ lần chạy cũ đang dở
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Typecheck · Test · Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # Phiên bản pnpm lấy từ trường "packageManager" trong package.json
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Cài phụ thuộc
+        run: pnpm install --frozen-lockfile
+
+      - name: Kiểm tra kiểu (6 gói)
+        run: pnpm typecheck
+
+      - name: Test (luật cờ, máy, nhận diện thế cờ)
+        run: pnpm test
+
+      # Bản phát hành đầu tắt chế độ online (VITE_ONLINE không đặt)
+      - name: Build web
+        run: pnpm build
+
+      - name: Lưu bản build để tải về xem thử
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist-${{ github.sha }}
+          path: apps/web/dist
+          retention-days: 7

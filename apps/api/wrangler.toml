@@ -1,0 +1,35 @@
+name = "nine-palaces-api"
+main = "src/index.ts"
+compatibility_date = "2025-06-01"
+
+# Durable Objects (gói free yêu cầu lớp lưu trữ SQLite)
+[[durable_objects.bindings]]
+name = "ROOM"
+class_name = "RoomDO"
+
+[[durable_objects.bindings]]
+name = "LOBBY"
+class_name = "LobbyDO"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RoomDO", "LobbyDO"]
+
+# D1: tạo bằng `wrangler d1 create nine-palaces` rồi thay database_id bên dưới.
+[[d1_databases]]
+binding = "DB"
+database_name = "nine-palaces"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[vars]
+# Danh sách origin của web được phép gọi API, cách nhau bằng dấu phẩy
+WEB_ORIGIN = "http://localhost:5173"
+# Địa chỉ công khai của API (dùng làm redirect_uri cho Google OAuth)
+API_ORIGIN = "http://localhost:8787"
+GOOGLE_CLIENT_ID = ""
+# "1" để bật đăng nhập thử (chỉ dùng khi phát triển)
+DEV_LOGIN = "0"
+
+# Bí mật: đặt bằng `wrangler secret put JWT_SECRET` và `wrangler secret put GOOGLE_CLIENT_SECRET`.
+# Khi chạy local, đặt trong file .dev.vars (xem .dev.vars.example).

@@ -1,0 +1,7 @@
+# Nhắc cập nhật phiên bản các GitHub Action mỗi tháng (không tự cập nhật thư viện npm để tránh nhiễu)
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
