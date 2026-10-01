@@ -51,7 +51,7 @@ jobs:
           # Tên miền riêng (tuỳ chọn): đặt biến repo PAGES_DOMAIN, ví dụ co.example.com
           if [ -n "${{ vars.PAGES_DOMAIN }}" ]; then echo "${{ vars.PAGES_DOMAIN }}" > CNAME; fi
 
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v3
         with:
           path: apps/web/dist
