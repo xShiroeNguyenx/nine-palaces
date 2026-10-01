@@ -1,12 +1,13 @@
 {
   "name": "Nine Palaces — Cửu Cung",
   "short_name": "Cửu Cung",
-  "description": "Cờ tướng trực tuyến: chơi với bạn, với máy, xem trận",
-  "start_url": "/",
+  "description": "Cờ tướng: chơi với máy, 2 người 1 máy, Luyện Trình",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#1f1510",
   "theme_color": "#1f1510",
   "lang": "vi",
-  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
 }

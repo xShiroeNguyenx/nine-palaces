@@ -55,6 +55,10 @@ pnpm --filter @np/api smoke              # đầu cuối API, cần `pnpm dev:ap
 SMOKE_SLOW=1 pnpm --filter @np/api smoke # thêm hết giờ & bỏ cuộc (~65 giây)
 ```
 
+## Chơi ngay
+
+https://xshiroenguyenx.github.io/nine-palaces/ (GitHub Pages, tự cập nhật mỗi lần push lên `main`).
+
 ## CI và phát hành
 
 GitHub Actions kiểm tra mọi push và pull request (typecheck, test, build). Gắn tag `vX.Y.Z` sẽ tạo GitHub Release kèm bản web đã build. Quy trình đầy đủ, các secret cần đặt và checklist trước khi công khai repo: [docs/RELEASE.md](docs/RELEASE.md). Nhật ký thay đổi: [CHANGELOG.md](CHANGELOG.md).

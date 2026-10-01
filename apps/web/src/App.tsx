@@ -161,7 +161,8 @@ export function App() {
   }, [token]);
 
   return (
-    <BrowserRouter>
+    // basename theo base của Vite: "/" hoặc "/nine-palaces/" khi chạy trên GitHub Pages
+    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || undefined}>
       <Shell />
     </BrowserRouter>
   );

@@ -1,0 +1,67 @@
+name: Pages
+
+# Đưa web lên GitHub Pages: https://<tài-khoản>.github.io/<tên-repo>/
+# Chạy mỗi khi push lên main (sau khi build qua), hoặc chạy tay.
+# Bật một lần: Settings → Pages → Build and deployment → Source: "GitHub Actions".
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Chỉ một lần deploy chạy cùng lúc; không huỷ lần đang deploy dở
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+
+      - name: Build web cho GitHub Pages
+        run: pnpm build
+        env:
+          # Web nằm trong thư mục con /<tên-repo>/. Có tên miền riêng (vars.PAGES_DOMAIN) thì dùng gốc "/".
+          VITE_BASE: ${{ vars.PAGES_DOMAIN && '/' || format('/{0}/', github.event.repository.name) }}
+          # Bản phát hành đầu: không có server, chế độ online tắt
+          VITE_ONLINE: ''
+
+      - name: Chuẩn bị cho GitHub Pages
+        run: |
+          cd apps/web/dist
+          # Ứng dụng một trang: mở thẳng link con (vd. /ai) thì GitHub Pages trả 404.html → dùng chính index.html
+          cp index.html 404.html
+          # Không cho Jekyll xử lý (bỏ qua file bắt đầu bằng _)
+          touch .nojekyll
+          # Tên miền riêng (tuỳ chọn): đặt biến repo PAGES_DOMAIN, ví dụ co.example.com
+          if [ -n "${{ vars.PAGES_DOMAIN }}" ]; then echo "${{ vars.PAGES_DOMAIN }}" > CNAME; fi
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

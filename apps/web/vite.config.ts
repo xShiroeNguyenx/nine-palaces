@@ -2,7 +2,14 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+/**
+ * Đường dẫn gốc của web. Mặc định '/' (tên miền riêng, Cloudflare Pages).
+ * GitHub Pages của repo chạy trong thư mục con: build với VITE_BASE=/nine-palaces/.
+ */
+const base = process.env.VITE_BASE || '/';
+
 export default defineConfig({
+  base,
   plugins: [
     react(),
     VitePWA({
@@ -15,12 +22,12 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,webp,webmanifest}'],
         // Ảnh bàn cờ lớn (~250KB/bàn): không tải sẵn hết, chỉ lưu khi người chơi mở bàn đó (runtimeCaching bên dưới)
         globIgnores: ['boards/**'],
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//],
+        navigateFallback: `${base}index.html`,
+        navigateFallbackDenylist: [/\/api\//],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.pathname.startsWith('/boards/') || url.pathname.startsWith('/video/'),
+            urlPattern: ({ url }) => url.pathname.includes('/boards/') || url.pathname.includes('/video/'),
             handler: 'CacheFirst',
             options: { cacheName: 'board-images', expiration: { maxEntries: 30 } },
           },
