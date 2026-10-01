@@ -58,6 +58,8 @@ export const BOARD_THEMES: Record<BoardSkinId, BoardTheme> = {
     coord: '#5a4632',
     edge: ['#b59a6e', '#5c4a2c'],
     texture: 'paper',
+    // Ảnh gốc 1254×1254: nén khung 9 mảnh, kéo từng ô cho lưới đều
+    image: { src: 'boards/paper.webp?v=1', size: [1016, 1102], grid: [76, 74, 940, 1028] },
     lineWidth: 1.6,
   },
   marble: {
@@ -77,8 +79,10 @@ export const BOARD_THEMES: Record<BoardSkinId, BoardTheme> = {
     border: '#8a1c12',
     river: '#e8c768',
     coord: '#d4af37',
-    edge: ['#5a120c', '#1a0503'],
+    edge: ['#2a2018', '#050302'],
     texture: 'lacquer',
+    // Ảnh gốc 1254×1254: nén khung 9 mảnh, kéo từng ô cho lưới đều
+    image: { src: 'boards/lacquer.webp?v=1', size: [1062, 1093], grid: [79, 74, 983, 1019] },
     dark: true,
   },
   jade: {
@@ -100,6 +104,8 @@ export const BOARD_THEMES: Record<BoardSkinId, BoardTheme> = {
     coord: '#67e8f9',
     edge: ['#1b2340', '#05070f'],
     texture: 'neon',
+    // Ảnh gốc 1254×1254: nén khung 9 mảnh, kéo từng ô cho lưới đều
+    image: { src: 'boards/neon.webp?v=1', size: [1006, 1082], grid: [75, 73, 931, 1009] },
     glow: '#22d3ee',
     dark: true,
   },
@@ -251,7 +257,7 @@ export const PIECE_THEMES: Record<PieceSetId, PieceTheme> = {
   lacquer: {
     shape: 'disc',
     thickness: 6,
-    side: ['#7a1410', '#2a0806'],
+    side: ['#2a1a10', '#050302'],
     face: (r) => (r ? ['#e04a3a', '#a01f16', '#5c0f0a'] : ['#4a4a4a', '#1c1c1c', '#050505']),
     rim: () => '#d4af37',
     rimWidth: 2,
@@ -260,6 +266,7 @@ export const PIECE_THEMES: Record<PieceSetId, PieceTheme> = {
     textFx: 'embossed',
     font: 'han',
     gloss: true,
+    images: 'pieces/lacquer',
   },
   jade: {
     shape: 'disc',
@@ -328,6 +335,7 @@ export const PIECE_THEMES: Record<PieceSetId, PieceTheme> = {
     translucent: true,
     gloss: true,
     overlay: 'frost',
+    images: 'pieces/ice',
   },
   fire: {
     shape: 'disc',
