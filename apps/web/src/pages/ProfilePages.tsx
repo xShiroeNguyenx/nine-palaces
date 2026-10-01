@@ -7,6 +7,7 @@ import { Board } from '../board/Board';
 import { MoveList, ReviewControls, viewPosition } from '../game/components';
 import { ACHIEVEMENTS, titleOf } from '../lib/cosmetics';
 import { ONLINE_ENABLED } from '../lib/config';
+import { BackupCard } from './BackupCard';
 import { END_REASON_VI } from '@np/rules';
 import { formatTimeControl, SIDE_VI, timeAgo } from '../lib/format';
 import { useProgress } from '../lib/progress';
@@ -48,6 +49,8 @@ export function ProfilePage() {
     <div className="page">
       <h1>Hồ sơ</h1>
       <div className="cards">
+        {/* Tài khoản (đăng nhập Google, đổi tên) cần máy chủ: chỉ hiện khi bật chế độ online */}
+        {ONLINE_ENABLED && (
         <section className="card">
           <div className="profile-head">
             {user?.avatar ? <img className="avatar" src={user.avatar} alt="" referrerPolicy="no-referrer" /> : <div className="avatar placeholder">👤</div>}
@@ -79,6 +82,7 @@ export function ProfilePage() {
             </button>
           )}
         </section>
+        )}
 
         <section className="card">
           <h2>Tiến trình</h2>
@@ -94,6 +98,8 @@ export function ProfilePage() {
             Cấp máy đã mở: <strong>{progress.aiLevelUnlocked}</strong> — {LEVELS[progress.aiLevelUnlocked - 1]!.name}
           </p>
         </section>
+
+        <BackupCard />
 
         {ONLINE_ENABLED && (
         <section className="card">

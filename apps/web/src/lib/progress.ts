@@ -112,6 +112,8 @@ export const useProgress = create<ProgressState>((set, get) => {
         p.aiWins[String(level)] = (p.aiWins[String(level)] ?? 0) + 1;
         p.totalWins += 1;
         if (countsForUnlock) p.unlockWins += 1;
+        // Đã có tiến trình đáng giữ → xin trình duyệt không tự xoá dữ liệu (Chrome/Safari tự quyết, không hỏi)
+        void navigator.storage?.persist?.().catch(() => undefined);
         p.streak += 1;
         p.bestStreak = Math.max(p.bestStreak, p.streak);
         if (level === p.aiLevelUnlocked && level < LEVELS.length) {

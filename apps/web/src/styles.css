@@ -2407,3 +2407,47 @@ h2 {
 .move.mark-theirs.mark-inaccuracy {
   text-decoration-color: #e0b040;
 }
+
+/* Hồ sơ: lưu giữ tiến trình */
+.backup-card h3 {
+  margin: 12px 0 4px;
+  font-size: 1rem;
+}
+.backup-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+  font-size: 0.85rem;
+}
+.backup-card .ok {
+  color: #7fd18f;
+}
+.backup-card .warn {
+  color: #f0b45a;
+}
+.backup-code,
+.backup-restore {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.backup-code textarea,
+.backup-restore textarea {
+  width: 100%;
+  resize: vertical;
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  word-break: break-all;
+}
+.backup-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(63, 174, 93, 0.12);
+  border: 1px solid rgba(63, 174, 93, 0.45);
+}

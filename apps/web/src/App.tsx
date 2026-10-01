@@ -3,6 +3,7 @@ import { BrowserRouter, NavLink, Route, Routes, useLocation, useNavigate } from 
 import { HomePage } from './pages/HomePage';
 import { Modal, UnlockToasts } from './game/components';
 import { useLeaveGuardStore } from './lib/leaveGuard';
+import { isInstalled, requestPersist } from './lib/backup';
 import { ONLINE_ENABLED } from './lib/config';
 import { Navigate } from 'react-router-dom';
 
@@ -150,6 +151,10 @@ export function App() {
   useEffect(() => {
     document.documentElement.lang = lang;
   }, [lang]);
+  useEffect(() => {
+    // Ứng dụng đã cài lên màn hình chính hoặc đã có trận thắng: xin giữ dữ liệu lâu dài
+    if (isInstalled() || useProgress.getState().progress.totalWins > 0) void requestPersist();
+  }, []);
   useEffect(() => {
     if (!token) return;
     void refreshMe().then((me) => {
