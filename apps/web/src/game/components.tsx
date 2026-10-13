@@ -6,6 +6,7 @@ import { useSettings } from '../lib/settings';
 import { sfx } from '../lib/sound';
 import { useProgress } from '../lib/progress';
 import { PIECE_VI, smallLabel } from '../board/pieces';
+import { CHECK_CALLS } from '../lib/cosmetics';
 
 /* ------------------------------ Thanh người chơi ------------------------------ */
 
@@ -242,7 +243,8 @@ export function EffectBanner({
   patterns?: PatternHit[];
   flipped?: boolean;
 }) {
-  const { effects, fxTier, patternBanners } = useSettings();
+  const { effects, fxTier, patternBanners, checkCall } = useSettings();
+  const callText = CHECK_CALLS.find((c) => c.id === checkCall)?.name ?? 'CHIẾU!';
   const [banner, setBanner] = useState<Banner | null>(null);
   // Banner chiếu tránh nửa bàn có Tướng bị chiếu để không che hình minh họa
   const checkEv = events.find((e) => e.type === 'check');
@@ -275,7 +277,7 @@ export function EffectBanner({
     } else if (check && check.type === 'check') {
       b = check.double
         ? { key: stamp, title: 'SONG CHIẾU', sub: check.by.map((p) => CHECK_TEXT[p].sub).join(' + '), kind: 'double' }
-        : { key: stamp, title: 'CHIẾU!', sub: CHECK_TEXT[check.by[0]!].sub, kind: CHECK_TEXT[check.by[0]!].kind };
+        : { key: stamp, title: callText, sub: CHECK_TEXT[check.by[0]!].sub, kind: CHECK_TEXT[check.by[0]!].kind };
     } else if (formation && patternBanners) {
       b = { key: stamp, title: formation.name, sub: formation.description, kind: 'formation' };
       sfx.drum();
@@ -289,7 +291,7 @@ export function EffectBanner({
     const ms = b.kind === 'mate' ? 4100 : b.kind === 'formation' ? 1800 : 1600;
     const t = setTimeout(() => setBanner((cur) => (cur?.key === b!.key ? null : cur)), ms);
     return () => clearTimeout(t);
-  }, [events, stamp, effects, patterns, patternBanners]);
+  }, [events, stamp, effects, patterns, patternBanners, callText]);
   if (!banner) return null;
   return (
     <div key={banner.key} className={`fx-banner fx-${banner.kind} tier-${fxTier} ${kingAtTop ? 'at-bottom' : ''}`} role="status">

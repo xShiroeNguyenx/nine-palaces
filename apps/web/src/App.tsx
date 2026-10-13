@@ -32,6 +32,8 @@ import { useProgress } from './lib/progress';
 import { useSettings } from './lib/settings';
 import { useT } from './lib/i18n';
 import { OfflineBanner } from './lib/pwa';
+import { useEnforceOwnership } from './lib/equip';
+import { CoinBadge } from './game/economyUi';
 
 const GAME_ROUTES = /^\/(r|j|match)\/|^\/ai\/play|^\/local|^\/analysis|^\/review|^\/dev\//;
 
@@ -90,6 +92,7 @@ function NavBar({ showTabs }: { showTabs: boolean }) {
           {ONLINE_ENABLED && <NavLink to="/leaderboard">{t('Xếp hạng')}</NavLink>}
           <NavLink to="/profile">{t('Hồ sơ')}</NavLink>
         </div>
+        <CoinBadge />
         {import.meta.env.DEV && (
           <NavLink to="/dev/fx" className="nav-settings dev-link" aria-label="Phòng thử hiệu ứng" title="Phòng thử hiệu ứng (dev)">
             🧪
@@ -176,6 +179,8 @@ export function App() {
 function Shell() {
   const { pathname } = useLocation();
   const showTabs = !GAME_ROUTES.test(pathname);
+  // Phòng thử hiệu ứng tạm đổi bậc hiệu ứng: không ép về đồ đã sở hữu
+  useEnforceOwnership(!pathname.startsWith('/dev/'));
   return (
     <>
       <NavBar showTabs={showTabs} />

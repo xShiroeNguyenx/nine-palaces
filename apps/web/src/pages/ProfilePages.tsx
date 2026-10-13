@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Game, moveFrom, moveTo, type GameResult } from '@np/rules';
 import { LEVELS } from '@np/ai';
@@ -8,6 +8,8 @@ import { MoveList, ReviewControls, viewPosition } from '../game/components';
 import { ACHIEVEMENTS, titleOf } from '../lib/cosmetics';
 import { ONLINE_ENABLED } from '../lib/config';
 import { BackupCard } from './BackupCard';
+import { TitleFrame, useWallet } from '../game/economyUi';
+import { useSettings } from '../lib/settings';
 import { END_REASON_VI } from '@np/rules';
 import { formatTimeControl, SIDE_VI, timeAgo } from '../lib/format';
 import { useProgress } from '../lib/progress';
@@ -18,6 +20,8 @@ const MODE_VI: Record<RatingMode, string> = { bullet: 'Chớp (bullet)', blitz: 
 export function ProfilePage() {
   const { token, user, me, logout } = useSession();
   const progress = useProgress((s) => s.progress);
+  const wallet = useWallet();
+  const gacha = useSettings((s) => s.gacha);
   const [matches, setMatches] = useState<MatchSummary[] | null>(null);
   const [name, setName] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
@@ -87,12 +91,13 @@ export function ProfilePage() {
         <section className="card">
           <h2>Tiến trình</h2>
           <div className="stats">
-            <Stat label="Danh hiệu" value={titleOf(progress.xp).name} sub={titleOf(progress.xp).next ? `tiếp: ${titleOf(progress.xp).next!.name} (${titleOf(progress.xp).next!.xp} XP)` : 'cao nhất'} />
+            <Stat label="Danh hiệu" value={<TitleFrame>{titleOf(progress.xp).name}</TitleFrame>} sub={titleOf(progress.xp).next ? `tiếp: ${titleOf(progress.xp).next!.name} (${titleOf(progress.xp).next!.xp} XP)` : 'cao nhất'} />
             <Stat label="XP" value={progress.xp} />
             <Stat label="Thành tựu" value={`${progress.achievements.length}/${ACHIEVEMENTS.length}`} />
             <Stat label="Trận thắng" value={progress.totalWins} />
             <Stat label="Thắng tính mở khóa" value={progress.unlockWins} />
             <Stat label="Chuỗi thắng tốt nhất" value={progress.bestStreak} />
+            {gacha && <Stat label="Xu · Mảnh" value={`🪙 ${wallet.coins} · 🧩 ${wallet.shards}`} sub={`${progress.economy.owned.length} món từ Bảo Khố`} />}
           </div>
           <p className="small">
             Cấp máy đã mở: <strong>{progress.aiLevelUnlocked}</strong> — {LEVELS[progress.aiLevelUnlocked - 1]!.name}
@@ -147,7 +152,7 @@ export function ProfilePage() {
   );
 }
 
-function Stat({ label, value, sub }: { label: string; value: number | string; sub?: string }) {
+function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: string }) {
   return (
     <div className="stat">
       <div className="stat-value">{value}</div>

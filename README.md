@@ -5,7 +5,8 @@ Game cờ tướng trên web (ưu tiên điện thoại):
 - 2 người cùng máy, đánh với máy 10 cấp (mở khóa dần), phòng online ghép bằng mã QR, ghép trận nhanh, xem trận, xếp hạng Elo, đi trước (premove).
 - **Luyện Trình**: trỏ/chạm vào quân thấy % lợi thế từng nước và chuỗi 5 nước tiếp theo; phân tích lại ván sau khi đánh.
 - Hiệu ứng theo quân chiếu (Xe/Mã/Pháo/Tốt), chiếu bí, nhận diện 79 thế cờ (Pháo đầu, Bá vương xe, Xe tuần hà, Mã hậu pháo…), 4 bậc hiệu ứng.
-- 8 bàn cờ, 8 bộ quân, 14 thành tựu mở khóa theo trận thắng.
+- 12 bàn cờ, 13 bộ quân, 14 thành tựu mở khóa theo trận thắng.
+- **Bảo Khố** (gacha cho vui): quay đồ trang trí bằng xu kiếm trong game (không bán xu), công khai tỉ lệ, có bảo hiểm; thêm khung danh hiệu, lời chiếu tướng, âm quân.
 - **Cờ úp** (2 người 1 máy và online), chơi offline (PWA), tiếng Việt / English / 中文, điều khiển bằng bàn phím.
 
 Kế hoạch chi tiết: [PLAN.md](PLAN.md).
@@ -18,7 +19,7 @@ apps/api        Cloudflare Workers + Durable Objects + D1 (Hono)
 packages/rules    Luật cờ tướng + cờ úp thuần TypeScript (dùng chung client/server)
 packages/ai       Engine máy (alpha-beta, 10 cấp), Luyện Trình, đánh giá sau ván — chạy trong Web Worker
 packages/patterns Nhận diện thế cờ (DSL + danh mục khai cuộc, thế hình quân, sát cục)
-packages/shared   Giao thức WebSocket, kiểu dữ liệu; schema zod ở @np/shared/schemas (chỉ server)
+packages/shared   Giao thức WebSocket, kiểu dữ liệu, ví xu & gacha (hàm thuần); schema zod ở @np/shared/schemas (chỉ server)
 docs/           ADR, CREDITS
 ```
 
@@ -49,7 +50,7 @@ Web tự chuyển tiếp `/api` và WebSocket sang API ở `127.0.0.1:8787` (pro
 ## Kiểm thử
 
 ```bash
-pnpm test          # luật (perft, chiếu mãi, ký hiệu, PGN) + engine
+pnpm test          # luật (perft, chiếu mãi, ký hiệu, PGN) + engine + ví xu & gacha
 pnpm typecheck
 pnpm --filter @np/api smoke              # đầu cuối API, cần `pnpm dev:api` đang chạy
 SMOKE_SLOW=1 pnpm --filter @np/api smoke # thêm hết giờ & bỏ cuộc (~65 giây)

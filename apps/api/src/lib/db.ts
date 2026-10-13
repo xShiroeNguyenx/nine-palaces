@@ -1,6 +1,8 @@
 import {
+  EMPTY_ECONOMY,
   EMPTY_PROGRESS,
   mergeProgress,
+  normalizeEconomy,
   type LeaderboardRow,
   type MatchDetail,
   type MatchSummary,
@@ -91,16 +93,19 @@ interface ProgressRow {
   streak: number;
   best_streak: number;
   achievements?: string;
+  economy?: string;
 }
 
 export async function getProgress(db: D1Database, userId: string): Promise<ProgressData> {
   const r = await db.prepare('SELECT * FROM progress WHERE user_id = ?').bind(userId).first<ProgressRow>();
-  if (!r) return { ...EMPTY_PROGRESS, aiWins: {}, achievements: [] };
+  if (!r) return { ...EMPTY_PROGRESS, aiWins: {}, achievements: [], economy: EMPTY_ECONOMY };
   let aiWins: Record<string, number> = {};
   let achievements: string[] = [];
+  let economy: unknown = null;
   try {
     aiWins = JSON.parse(r.ai_wins) as Record<string, number>;
     achievements = JSON.parse(r.achievements ?? '[]') as string[];
+    economy = JSON.parse(r.economy ?? '{}');
   } catch {
     /* bỏ qua */
   }
@@ -113,18 +118,19 @@ export async function getProgress(db: D1Database, userId: string): Promise<Progr
     streak: r.streak,
     bestStreak: r.best_streak,
     achievements,
+    economy: normalizeEconomy(economy),
   };
 }
 
 export async function saveProgress(db: D1Database, userId: string, p: ProgressData): Promise<void> {
   await db
     .prepare(
-      `INSERT INTO progress (user_id, xp, total_wins, unlock_wins, ai_level_unlocked, ai_wins, streak, best_streak, achievements, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO progress (user_id, xp, total_wins, unlock_wins, ai_level_unlocked, ai_wins, streak, best_streak, achievements, economy, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(user_id) DO UPDATE SET xp = excluded.xp, total_wins = excluded.total_wins,
          unlock_wins = excluded.unlock_wins, ai_level_unlocked = excluded.ai_level_unlocked,
          ai_wins = excluded.ai_wins, streak = excluded.streak, best_streak = excluded.best_streak,
-         achievements = excluded.achievements, updated_at = excluded.updated_at`,
+         achievements = excluded.achievements, economy = excluded.economy, updated_at = excluded.updated_at`,
     )
     .bind(
       userId,
@@ -136,6 +142,7 @@ export async function saveProgress(db: D1Database, userId: string, p: ProgressDa
       p.streak,
       p.bestStreak,
       JSON.stringify(p.achievements ?? []),
+      JSON.stringify(p.economy ?? EMPTY_ECONOMY),
       Date.now(),
     )
     .run();

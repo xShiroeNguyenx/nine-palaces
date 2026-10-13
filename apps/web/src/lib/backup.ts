@@ -1,4 +1,4 @@
-import { EMPTY_PROGRESS, type ProgressData } from '@np/shared';
+import { EMPTY_PROGRESS, normalizeEconomy, type ProgressData } from '@np/shared';
 import { loadRaw, save } from './storage';
 import { useProgress } from './progress';
 import { useSettings, type Settings } from './settings';
@@ -49,6 +49,10 @@ const SETTINGS_KEYS: (keyof Settings)[] = [
   'pieceStyle',
   'boardSkin',
   'fxTier',
+  'frame',
+  'checkCall',
+  'moveSound',
+  'gacha',
   'sound',
   'vibrate',
   'coordinates',
@@ -64,8 +68,8 @@ const SETTINGS_KEYS: (keyof Settings)[] = [
 ];
 
 export interface BackupPayload {
-  /** Phiên bản định dạng */
-  v: 1;
+  /** Phiên bản định dạng. 2: thêm ví gacha (progress.economy); vẫn đọc được bản 1 */
+  v: 1 | 2;
   /** Thời điểm tạo (ms) */
   t: number;
   progress: ProgressData;
@@ -73,6 +77,7 @@ export interface BackupPayload {
   settings: Partial<Settings>;
 }
 
+const BACKUP_VERSION = 2;
 const PREFIX_DEFLATE = 'CC2.';
 const PREFIX_PLAIN = 'CC1.';
 
@@ -103,7 +108,7 @@ export function currentPayload(): BackupPayload {
   const settings: Partial<Settings> = {};
   for (const k of SETTINGS_KEYS) (settings as Record<string, unknown>)[k] = s[k];
   return {
-    v: 1,
+    v: BACKUP_VERSION,
     t: Date.now(),
     progress: useProgress.getState().progress,
     patterns: useProgress.getState().seenPatterns,
@@ -145,7 +150,8 @@ export async function parseBackup(code: string): Promise<BackupPayload> {
   } catch {
     throw new Error('Không đọc được nội dung mã sao lưu.');
   }
-  if (data?.v !== 1 || typeof data.progress !== 'object') throw new Error('Mã sao lưu không hợp lệ.');
+  if (typeof data?.v === 'number' && data.v > BACKUP_VERSION) throw new Error('Mã sao lưu được tạo từ phiên bản mới hơn. Hãy tải lại trang để cập nhật Cửu Cung rồi thử lại.');
+  if ((data?.v !== 1 && data?.v !== 2) || typeof data.progress !== 'object') throw new Error('Mã sao lưu không hợp lệ.');
   return data;
 }
 
@@ -154,7 +160,14 @@ export async function parseBackup(code: string): Promise<BackupPayload> {
  * không bao giờ làm mất trận thắng hay mở khoá trên máy này.
  */
 export function applyBackup(data: BackupPayload) {
-  const p = { ...EMPTY_PROGRESS, ...data.progress, aiWins: { ...(data.progress.aiWins ?? {}) }, achievements: [...(data.progress.achievements ?? [])] };
+  const p = {
+    ...EMPTY_PROGRESS,
+    ...data.progress,
+    aiWins: { ...(data.progress.aiWins ?? {}) },
+    achievements: [...(data.progress.achievements ?? [])],
+    // Bản v1 chưa có ví: điền ví rỗng
+    economy: normalizeEconomy(data.progress.economy),
+  };
   useProgress.getState().mergeFromServer(p);
   // Thế cờ đã gặp: lấy số lần lớn hơn
   const seen = { ...useProgress.getState().seenPatterns };

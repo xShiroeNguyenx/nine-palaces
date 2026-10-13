@@ -6,6 +6,8 @@ import { titleOf } from '../lib/cosmetics';
 import { InstallButton } from '../lib/pwa';
 import { useT } from '../lib/i18n';
 import { ONLINE_ENABLED } from '../lib/config';
+import { TitleFrame } from '../game/economyUi';
+import { DailyGift } from './DailyGift';
 
 /** Mục chỉ có khi bật chế độ online */
 const ONLINE_ONLY = new Set(['/online', '/watch', '/leaderboard']);
@@ -46,11 +48,12 @@ export function HomePage() {
                 {t('Xin chào,')} <strong>{user.name}</strong> ·{' '}
               </>
             )}
-            <span className="accent">{title.name}</span> · {progress.xp} XP
+            <TitleFrame>{title.name}</TitleFrame> · {progress.xp} XP
           </p>
         </div>
       </header>
 
+      <DailyGift />
       <div className="menu-grid">
         {cards.map((c) => (
           <Link key={c.to} to={c.to} className={`menu-card ${c.primary ? 'primary' : ''}`}>

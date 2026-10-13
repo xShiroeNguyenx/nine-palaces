@@ -2451,3 +2451,323 @@ h2 {
   background: rgba(63, 174, 93, 0.12);
   border: 1px solid rgba(63, 174, 93, 0.45);
 }
+
+/* ============================ Bảo Khố (gacha) ============================ */
+:root {
+  --r-common: #a9a29a;
+  --r-rare: #4fa3e0;
+  --r-epic: #b06ee6;
+  --r-legendary: #f3c03d;
+}
+.coin-badge {
+  margin-left: auto;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--accent-2);
+  font-weight: 800;
+  font-size: 0.88rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.coin-badge ~ .nav-settings,
+.coin-badge ~ .dev-link {
+  margin-left: 0 !important;
+}
+.rarity-common {
+  --r: var(--r-common);
+}
+.rarity-rare {
+  --r: var(--r-rare);
+}
+.rarity-epic {
+  --r: var(--r-epic);
+}
+.rarity-legendary {
+  --r: var(--r-legendary);
+}
+.gacha-rarity {
+  color: var(--r, var(--muted));
+  font-weight: 800;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.gacha-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  margin: 10px 0;
+}
+.gacha-envelope-sm {
+  font-size: 3rem;
+  line-height: 1;
+}
+.gacha-wallet {
+  font-size: 1.05rem;
+}
+.gacha-gifts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+}
+.gacha-icon {
+  font-size: 2rem;
+  line-height: 1.2;
+}
+.gacha-call {
+  font-family: var(--viet-callig);
+  font-size: 1.15rem;
+  color: var(--accent-2);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.extra-preview {
+  display: grid;
+  place-items: center;
+  min-height: 64px;
+  border-radius: 10px;
+  background: var(--bg-2);
+}
+.gacha-shop-card {
+  border-color: color-mix(in srgb, var(--r) 55%, var(--line));
+}
+.gacha-fold summary {
+  cursor: pointer;
+  font-weight: 700;
+  margin: 12px 0 6px;
+}
+.gacha-history .room-row {
+  border-left: 3px solid var(--r);
+}
+.gacha-rates {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.gacha-rates th,
+.gacha-rates td {
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.gacha-rates td:first-child {
+  color: var(--r);
+  font-weight: 800;
+}
+
+/* Phong bao lì xì rung trước khi mở; màu ánh sáng báo trước bậc cao nhất */
+.gacha-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 24px 0 8px;
+}
+.gacha-envelope {
+  --glow: var(--r-common);
+  font-size: 6rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 18px var(--glow));
+  animation: envShake 0.35s ease-in-out infinite, envGlow 1.4s ease-in forwards;
+}
+.gacha-envelope.tier-1 {
+  --glow: var(--r-rare);
+}
+.gacha-envelope.tier-2 {
+  --glow: var(--r-epic);
+}
+.gacha-envelope.tier-3 {
+  --glow: var(--r-legendary);
+}
+@keyframes envShake {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(-8deg) scale(1.03);
+  }
+  75% {
+    transform: rotate(8deg) scale(1.03);
+  }
+}
+@keyframes envGlow {
+  from {
+    filter: drop-shadow(0 0 4px var(--glow));
+  }
+  to {
+    filter: drop-shadow(0 0 34px var(--glow)) brightness(1.25);
+  }
+}
+.gacha-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 8px;
+  margin: 8px 0;
+}
+.gacha-results.single {
+  grid-template-columns: minmax(0, 220px);
+  justify-content: center;
+}
+.gacha-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px;
+  text-align: center;
+  border-radius: var(--radius);
+  border: 2px solid var(--r);
+  background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--r) 28%, var(--panel)), var(--panel) 70%);
+  animation: cardFlip 0.45s ease-out both;
+}
+.gacha-card.rarity-legendary {
+  box-shadow: 0 0 16px color-mix(in srgb, var(--r-legendary) 60%, transparent);
+}
+.gacha-new {
+  color: var(--green);
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+@keyframes cardFlip {
+  from {
+    transform: rotateY(90deg) scale(0.8);
+    opacity: 0;
+  }
+}
+
+/* Thẻ quà hằng ngày trên Trang chủ */
+.daily-gift {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0;
+  border-color: var(--accent);
+}
+.daily-gift > div {
+  flex: 1;
+  min-width: 0;
+}
+.daily-icon {
+  font-size: 2rem;
+}
+
+/* Khung danh hiệu */
+.title-frame {
+  display: inline-block;
+  padding: 1px 10px;
+  border-radius: 8px;
+  font-weight: 800;
+  color: var(--accent-2);
+  border: 2px solid var(--line);
+  background: var(--panel-2);
+}
+.frame-bamboo {
+  border-color: #5f9a45;
+  border-style: double;
+  border-width: 4px;
+  color: #cfe7b5;
+}
+.frame-cloud {
+  border-color: #e9eef3;
+  border-radius: 999px;
+  color: #f4f7fa;
+  box-shadow: 0 0 0 3px rgba(233, 238, 243, 0.25);
+}
+.frame-ink {
+  border: none;
+  border-left: 4px solid #111;
+  border-right: 4px solid #111;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.55), transparent 30%, transparent 70%, rgba(0, 0, 0, 0.55));
+  color: var(--text);
+}
+.frame-red {
+  border-color: var(--red);
+  color: #ffd2cc;
+}
+.frame-plum {
+  border-color: var(--accent);
+  color: #ffd9e3;
+  background:
+    radial-gradient(circle at 6px 50%, #f29bb5 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 6px) 50%, #f29bb5 3px, transparent 4px),
+    var(--panel-2);
+}
+.frame-wave {
+  border-color: #3a8fd0;
+  border-style: dashed;
+  color: #cbe6fa;
+}
+.frame-jade {
+  border-color: #3fbf9b;
+  color: #d4fff1;
+  background: linear-gradient(90deg, #1d4d40, #2c7a64, #1d4d40);
+  background-size: 200% 100%;
+  animation: frameShine 3s linear infinite;
+}
+.frame-lantern {
+  position: relative;
+  margin: 0 14px;
+  border-color: #e0442f;
+  background: #6d1a12;
+  color: #ffe3a6;
+}
+.frame-lantern::before,
+.frame-lantern::after {
+  content: '🏮';
+  position: absolute;
+  top: 50%;
+  font-size: 0.9em;
+  transform-origin: top center;
+  animation: lanternSwing 2s ease-in-out infinite;
+}
+.frame-lantern::before {
+  left: -18px;
+}
+.frame-lantern::after {
+  right: -18px;
+  animation-delay: -1s;
+}
+.frame-phoenix {
+  border-color: #ff7a2e;
+  color: #ffe2c4;
+  background: linear-gradient(180deg, #7a2a10, #3d1408);
+  box-shadow: 0 0 10px rgba(255, 122, 46, 0.6);
+}
+.frame-dragon {
+  border-color: var(--r-legendary);
+  color: #2b1a00;
+  background: linear-gradient(100deg, #b8860b, #ffe08a 45%, #b8860b 55%, #ffd24a);
+  background-size: 220% 100%;
+  box-shadow: 0 0 12px rgba(243, 192, 61, 0.7);
+  animation: frameShine 2.4s linear infinite;
+}
+@keyframes frameShine {
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes lanternSwing {
+  0%,
+  100% {
+    transform: translateY(-50%) rotate(-8deg);
+  }
+  50% {
+    transform: translateY(-50%) rotate(8deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gacha-envelope,
+  .gacha-card,
+  .frame-jade,
+  .frame-dragon,
+  .frame-lantern::before,
+  .frame-lantern::after {
+    animation: none;
+  }
+}

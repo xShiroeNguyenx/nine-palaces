@@ -1,15 +1,38 @@
 import { create } from 'zustand';
 import { LEVELS } from '@np/ai';
-import { EMPTY_PROGRESS, mergeProgress, type ProgressData } from '@np/shared';
-import { load, save } from './storage';
+import {
+  EMPTY_PROGRESS,
+  buyWithShards,
+  claimDaily,
+  claimOnce,
+  coinsForAiGame,
+  credit,
+  dayKey,
+  mergeProgress,
+  normalizeEconomy,
+  pull,
+  type ProgressData,
+  type PullResult,
+} from '@np/shared';
+import { deviceId, load, save } from './storage';
 import { api, useSession } from './session';
-import { newlyUnlocked } from './cosmetics';
+import { GACHA_POOL, ITEM_BY_KEY, newlyUnlocked, rarityOf, unlockedByPlay } from './cosmetics';
 
 export interface AiOutcome {
   unlockedLevel: number | null;
   xpGained: number;
+  coinsGained: number;
   countsForUnlock: boolean;
 }
+
+/** Một dòng lịch sử quay (chỉ lưu trên máy này, không đồng bộ) */
+export interface GachaLogEntry {
+  t: number;
+  id: string;
+  dup: boolean;
+}
+
+const GACHA_LOG_MAX = 50;
 
 export interface GameFacts {
   outcome: 'win' | 'loss' | 'draw';
@@ -27,6 +50,7 @@ interface ProgressState {
   seenPatterns: Record<string, number>;
   /** Hàng đợi thông báo mở khóa */
   toasts: { id: number; text: string }[];
+  gachaLog: GachaLogEntry[];
   recordAiGame: (level: number, outcome: 'win' | 'loss' | 'draw', assisted: boolean, facts?: Partial<GameFacts>) => AiOutcome;
   /** Ghi nhận thành tựu từ một ván (online / 2 người / cờ úp) — số trận thắng online do server cộng */
   recordFacts: (facts: GameFacts) => void;
@@ -34,6 +58,14 @@ interface ProgressState {
   seePatterns: (ids: string[]) => void;
   mergeFromServer: (p: ProgressData) => void;
   dismissToast: (id: number) => void;
+  /** Quà chào mừng Bảo Khố (một lần); false nếu đã nhận */
+  claimWelcome: () => boolean;
+  /** Quà đăng nhập hôm nay; null nếu đã nhận */
+  claimDaily: () => { coins: number; streak: number } | null;
+  /** Quay ×1 / ×10; null nếu không đủ xu */
+  pull: (count: 1 | 10) => PullResult[] | null;
+  /** Đổi mảnh lấy một món (mã 'board:jade'); false nếu không đổi được */
+  buyWithShards: (key: string) => boolean;
   sync: () => Promise<void>;
 }
 
@@ -44,12 +76,29 @@ export function winsNeededToUnlockNext(level: number): number {
 }
 
 function normalize(p: ProgressData): ProgressData {
-  const n = { ...EMPTY_PROGRESS, ...p, aiWins: { ...(p.aiWins ?? {}) }, achievements: [...(p.achievements ?? [])] };
+  const n = {
+    ...EMPTY_PROGRESS,
+    ...p,
+    aiWins: { ...(p.aiWins ?? {}) },
+    achievements: [...(p.achievements ?? [])],
+    economy: normalizeEconomy(p.economy),
+  };
   // Tính bù: trước đây chỉ thắng máy từ cấp 3 không trợ giúp mới được tính mở khoá.
   // aiWins ghi mọi ván thắng máy, nên số tính mở khoá ít nhất bằng tổng số đó.
   const aiTotal = Object.values(n.aiWins).reduce((a, b) => a + (b ?? 0), 0);
   n.unlockWins = Math.max(n.unlockWins, aiTotal);
   return n;
+}
+
+/** Món đã có ngoài ví gacha (mở bằng trận thắng / thành tựu) */
+const ownsByPlay = (p: ProgressData) => (key: string) => {
+  const it = ITEM_BY_KEY.get(key);
+  return !!it && unlockedByPlay(it, p);
+};
+
+/** Số ngẫu nhiên [0, 1) từ crypto: kết quả quay không đoán trước được */
+function cryptoRandom(): number {
+  return crypto.getRandomValues(new Uint32Array(1))[0]! / 4294967296;
 }
 
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
@@ -76,6 +125,13 @@ export const useProgress = create<ProgressState>((set, get) => {
     set((s) => ({ progress: next, toasts: [...s.toasts, ...unlocked.map((text) => ({ id: toastId++, text }))] }));
   };
 
+  /** Thao tác Bảo Khố: lưu + đồng bộ, không bắn thông báo mở khoá (màn quay đã tự hiện) */
+  const commitQuiet = (next: ProgressData) => {
+    save('np.progress', next);
+    set({ progress: next });
+    void get().sync();
+  };
+
   const achievementsFor = (p: ProgressData, f: Partial<GameFacts>): string[] => {
     const a: string[] = [];
     if (f.outcome === 'win') {
@@ -97,6 +153,7 @@ export const useProgress = create<ProgressState>((set, get) => {
     progress: normalize(load('np.progress', { ...EMPTY_PROGRESS })),
     seenPatterns: load<Record<string, number>>('np.patterns', {}),
     toasts: [],
+    gachaLog: load<{ list: GachaLogEntry[] }>('np.gachaLog', { list: [] }).list,
 
     recordAiGame: (level, outcome, assisted, facts = {}) => {
       const p = normalize(get().progress);
@@ -127,8 +184,10 @@ export const useProgress = create<ProgressState>((set, get) => {
       }
       const ach = achievementsFor(p, { ...facts, outcome, aiLevel: level });
       p.achievements = [...new Set([...p.achievements, ...ach])];
+      const coins = coinsForAiGame(level, outcome, assisted);
+      p.economy = credit(p.economy, deviceId(), coins);
       commit(p);
-      return { unlockedLevel, xpGained: xp, countsForUnlock };
+      return { unlockedLevel, xpGained: xp, coinsGained: coins, countsForUnlock };
     },
 
     recordFacts: (facts) => {
@@ -161,6 +220,50 @@ export const useProgress = create<ProgressState>((set, get) => {
     },
 
     dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+
+    claimWelcome: () => {
+      const p = normalize(get().progress);
+      const economy = claimOnce(p.economy, 'welcome');
+      if (!economy) return false;
+      commitQuiet({ ...p, economy });
+      return true;
+    },
+
+    claimDaily: () => {
+      const p = normalize(get().progress);
+      const r = claimDaily(p.economy, deviceId(), dayKey(new Date()));
+      if (!r) return null;
+      commitQuiet({ ...p, economy: r.economy });
+      return { coins: r.coins, streak: r.streak };
+    },
+
+    pull: (count) => {
+      const p = normalize(get().progress);
+      const r = pull(p.economy, count, {
+        pool: GACHA_POOL,
+        device: deviceId(),
+        achievements: p.achievements,
+        ownsOutside: ownsByPlay(p),
+        rng: cryptoRandom,
+      });
+      if (!r) return null;
+      commitQuiet({ ...p, economy: r.economy });
+      const now = Date.now();
+      const log = [...r.results.map((x) => ({ t: now, id: x.item.id, dup: x.duplicate })).reverse(), ...get().gachaLog].slice(0, GACHA_LOG_MAX);
+      save('np.gachaLog', { list: log });
+      set({ gachaLog: log });
+      return r.results;
+    },
+
+    buyWithShards: (key) => {
+      const p = normalize(get().progress);
+      const it = ITEM_BY_KEY.get(key);
+      if (!it) return false;
+      const economy = buyWithShards(p.economy, deviceId(), { id: key, rarity: rarityOf(it) }, ownsByPlay(p));
+      if (!economy) return false;
+      commitQuiet({ ...p, economy });
+      return true;
+    },
 
     sync: async () => {
       if (!useSession.getState().token) return;

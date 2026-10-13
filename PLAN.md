@@ -21,6 +21,7 @@
 | Tài nguyên hình ảnh | Tìm nguồn miễn phí (CC0 / CC BY / OFL), ghi credit đầy đủ (mục 17). |
 | Luyện Trình online | Dùng được trong ván giao hữu **khi cả hai đồng ý**; cấm ở ván xếp hạng. |
 | Quy mô đội | 1–2 lập trình viên; không có designer riêng → skin ưu tiên làm bằng font + CSS + texture miễn phí. |
+| Gacha (Bảo Khố) | **Chỉ dùng xu kiếm trong game**: không bán xu, không quảng cáo đổi lượt, công khai tỉ lệ. Chỉ đồ trang trí (mục 21). |
 
 ---
 
@@ -337,6 +338,7 @@ Mọi bàn đều dùng chung lớp 3D: cạnh trước có bề dày, bóng đ�
 ### 8.5 Đồng bộ
 - Đăng nhập: server là nguồn sự thật. Guest: IndexedDB.
 - Hợp nhất khi đăng nhập lần đầu: mở khóa = hợp, số thắng = max, XP = max. Không thu hồi.
+- Ví xu Bảo Khố **không** lấy max số dư (sẽ trả lại xu đã tiêu): đếm xu kiếm/tiêu theo từng thiết bị, merge max theo thiết bị (mục 21.5).
 
 ---
 
@@ -702,6 +704,7 @@ Lặp thế cờ 3 lần mà không phải chiếu mãi → hòa (repetition).
 3. Giải đấu, bạn bè, kết bạn qua QR.
 4. Thư viện khai cuộc, puzzle hằng ngày, luật đuổi mãi.
 5. Phát hiện gian lận nâng cao; đăng nhập Facebook/Zalo.
+6. Gacha **"Bảo Khố"**: xu, quay, mảnh, đồ độc quyền (mục 21).
 
 ---
 
@@ -838,3 +841,153 @@ Kiến trúc không thay đổi ở mọi mốc.
 1. Giai đoạn 0: tạo tài khoản Cloudflare + repo, khởi tạo monorepo, chạy `wrangler dev`.
 2. Benchmark engine WASM trên điện thoại thật (ADR-001).
 3. Bắt đầu `@np/rules` với perft và luật chiếu mãi.
+
+---
+
+## 21. Gacha — Bảo Khố (cho vui)
+
+> Hiện trạng (2026-10-13): chưa có tiền tệ, chưa có danh sách đồ sở hữu. Mọi đồ trang trí mở bằng `unlockWins` (`apps/web/src/lib/cosmetics.ts`, `isUnlocked`). Đồng bộ dùng luật "lấy max, không thu hồi" (`mergeProgress`). Gacha cần thêm: ví xu tiêu được, danh sách sở hữu, đồ trùng đổi ra mảnh, và một kiểu merge mới, vì merge lấy max sẽ trả lại số xu đã tiêu.
+
+### 21.1 Nguyên tắc
+- **Chỉ vật phẩm trang trí**, không ảnh hưởng thắng thua (không có lợi thế khi đấu online).
+- **Không tiền thật**: xu chỉ kiếm bằng chơi; không có cửa hàng nạp, không quảng cáo đổi lượt.
+- **Minh bạch**: bảng tỉ lệ hiện ngay trên màn quay; đếm bảo hiểm (pity) hiện rõ ràng.
+- **Không thu hồi**: đồ đã có (qua thắng hay qua gacha) không bao giờ mất; đường mở bằng trận thắng giữ nguyên như §8.
+- Có thể tắt cả tính năng trong Cài đặt (ẩn tab Bảo Khố, ẩn xu).
+
+### 21.2 Tiền tệ
+| Loại | Dùng để | Nguồn |
+|---|---|---|
+| **Xu** 🪙 | Quay | Ván với máy, quà ngày, thành tựu, quà chào mừng |
+| **Mảnh** 🧩 | Đổi món tự chọn ở Tiệm mảnh | Quay trúng đồ đã có |
+
+**Thu nhập xu (cân chỉnh sau beta):**
+| Nguồn | Xu |
+|---|---|
+| Thắng máy | 30 × (0.5 + cấp × 0.15) — cùng hệ số với XP |
+| Hòa / thua | 12 / 5 (× cùng hệ số) |
+| Dùng gợi ý / đi lại / Luyện Trình | × 0.5 (giống XP) |
+| Quà đăng nhập ngày | 20; ngày thứ 7 liên tiếp +50 |
+| Thành tựu lần đầu | 50 (thường) / 150 (hiếm: `bat_bai`, …) |
+| Quà chào mừng (1 lần) | 300 (= 3 lượt) |
+
+Giá: **1 lượt = 100 xu**, **10 lượt = 900 xu** (10 lượt bảo đảm ít nhất 1 món Sử thi trở lên).
+Ước tính: thắng máy cấp 5 ≈ 37 xu → khoảng 3 trận thắng/lượt.
+
+### 21.3 Độ hiếm & tỉ lệ
+| Bậc | Màu | Tỉ lệ | Trùng → mảnh | Giá ở Tiệm mảnh |
+|---|---|---|---|---|
+| Thường | xám | 70% | 2 | 10 |
+| Hiếm | xanh | 24% | 5 | 30 |
+| Sử thi | tím | 5% | 20 | 120 |
+| Huyền thoại | vàng | 1% | 60 | 400 |
+
+**Bảo hiểm (pity)**, đếm riêng mỗi loại:
+- Sau 9 lượt liền không ra Sử thi+, lượt thứ 10 chắc chắn ra Sử thi+.
+- Huyền thoại: từ lượt 40 tỉ lệ tăng thêm 5%/lượt; lượt 50 chắc chắn ra.
+- Khi ra Huyền thoại, nếu còn món Huyền thoại **chưa có** thì ưu tiên rút trong nhóm chưa có (giảm cảm giác "trúng đồ trùng").
+
+### 21.4 Kho vật phẩm (pool)
+**Đồ hiện có** (bỏ đồ mặc định 0 thắng), xếp bậc theo mốc thắng:
+| Mốc thắng | Bậc |
+|---|---|
+| ≤ 50 | Hiếm |
+| 80 – 200 | Sử thi |
+| ≥ 260 | Huyền thoại |
+Bậc hiệu ứng: Bạc = Hiếm, Vàng = Sử thi, Huyền thoại = Huyền thoại. Mỗi bậc là một món riêng (có Vàng không tự có Bạc).
+
+**Đồ độc quyền gacha** (loại mới):
+| Loại | Ví dụ | Hiện ở đâu | Bậc |
+|---|---|---|---|
+| Khung danh hiệu | Viền tre, mây, rồng vàng | Hồ sơ, modal kết quả, thẻ tên online | Thường → Huyền thoại |
+| Lời chiếu tướng | "Chiếu!", "Tướng quân!", "Hết đường lui!" (thư pháp) | `EffectBanner` khi chiếu | Thường / Hiếm |
+| Âm quân | Gõ gỗ, đá, ngọc, chuông đồng | `sfx` khi đi quân | Hiếm / Sử thi |
+| Đòn kết liễu | 2 cảnh chiếu bí riêng (Phượng hoàng lửa, Long quyển) | `EffectCanvas` khi chiếu bí | Huyền thoại (giai đoạn sau) |
+
+Mục tiêu đợt đầu: khoảng 25 món hiện có + khoảng 20 món độc quyền (khoảng 12 Thường, 5 Hiếm, 3 Sử thi; Đòn kết liễu làm sau).
+
+### 21.5 Dữ liệu & đồng bộ (phần khó nhất)
+Mở rộng `ProgressData` (`packages/shared/src/index.ts`):
+```ts
+interface Economy {
+  owned: string[];                         // 'board:jade', 'piece:jade', 'fx:gold', 'frame:dragon'… → merge = HỢP
+  earned: Record<DeviceId, number>;        // xu kiếm được trên mỗi thiết bị → merge = max theo từng key
+  spent: Record<DeviceId, number>;         // xu đã tiêu trên mỗi thiết bị  → merge = max theo từng key
+  shardsIn: Record<DeviceId, number>;      // tương tự cho mảnh
+  shardsOut: Record<DeviceId, number>;
+  pity: Record<DeviceId, { sinceEpic: number; sinceLegend: number }>;
+  dailyDays: string[];                     // 'YYYY-MM-DD' giờ địa phương, giữ 40 ngày gần nhất → merge = hợp rồi cắt
+  claims: string[];                        // quà 1 lần: 'welcome' → merge = hợp
+}
+```
+- **Số dư = Σearned + xu(thành tựu) + xu(claims) − Σspent.** Xu thành tựu và quà chào mừng **tính ra từ tập** `achievements` / `claims`, nên không bao giờ cộng hai lần dù merge bao nhiêu lần. Đây là PN‑counter: vẫn hợp với luật "max/hợp" hiện có, merge giao hoán và lũy đẳng.
+- Id có tiền tố loại (`board:` / `piece:` …) vì `jade`, `ice`, `fire`, `galaxy`, `lacquer`, `bamboo` trùng giữa bàn và quân.
+- `deviceId()` đã có sẵn trong `apps/web/src/lib/storage.ts`.
+- Trường hợp biên: hai máy offline cùng tiêu một khoản xu → số dư âm sau merge. UI hiện 0 và khóa quay tới khi dương lại (chấp nhận được, không thu hồi đồ).
+- Hai máy offline cùng nhận quà một ngày → có thể nhận 2 lần. Chấp nhận được.
+- **Sở hữu** = `isUnlocked(item, p)` cũ **hoặc** `owned.includes(kind:id)`.
+
+Cần sửa đồng bộ ở cả ba nơi:
+- type `ProgressData` + `EMPTY_PROGRESS` + `mergeProgress`;
+- zod `ProgressSchema` (`packages/shared/src/schemas.ts`): giới hạn `owned` ≤ 300 phần tử × 40 ký tự, map ≤ 20 thiết bị;
+- D1: migration **mới** `apps/api/migrations/0004_economy.sql` (append-only), cột `economy TEXT` JSON; đọc/ghi ở `apps/api/src/lib/db.ts`.
+
+Sao lưu (`apps/web/src/lib/backup.ts`): nâng `v` lên **2**; `parseBackup` nhận cả 1 và 2 (v1 thiếu economy thì `normalize` tự điền mặc định). Bản app cũ gặp v2 sẽ báo "mã từ phiên bản mới hơn" thay vì âm thầm bỏ dữ liệu gacha.
+
+Không chống gian lận phía server: chỉ là đồ trang trí, sửa localStorage thì chỉ "lừa" chính mình.
+
+### 21.6 Logic thuần (có test)
+Đặt ở `packages/shared/src/gacha.ts` (+ `economy.ts`), test ở `packages/shared/test/*.test.ts` (thêm vitest cho `@np/shared` theo mẫu `packages/rules`). Không chôn trong UI.
+- `balance(e, achievements)`, `canAfford(...)`, `credit(e, dev, n)`, `debit(e, dev, n)`
+- `mergeEconomy(a, b)`
+- `rollRarity(pity, rng)` → `pull(pool, e, dev, rng)` → `{ item, rarity, duplicate, shards, economy }`
+- `pullTen(...)` với bảo đảm 10 lượt
+- `claimDaily(e, today)` (bên trong gọi `credit`), `dailyStreak(days, today)`
+- `rng` được truyền vào giống `chooseMove(game, level, rnd)`. App dùng `crypto.getRandomValues`, test dùng seed (`mulberry32` bản trả số thực trong `packages/shared/src/gacha.ts`; không chuyển bản trong `packages/rules/src/zobrist.ts` vì `@np/rules` không phụ thuộc `@np/shared`).
+
+Danh mục (catalog) giữ ở `apps/web/src/lib/cosmetics.ts`: thêm `rarity` cho từng món + `GACHA_POOL` + mảng các loại mới (`FRAMES`, `CHECK_CALLS`, `MOVE_SOUNDS`).
+
+### 21.7 Giao diện
+- **Tab "Bảo Khố"** trong trang Bộ sưu tập (chip mới cạnh Bàn / Quân / Hiệu ứng). Không thêm tab thứ 5 vào tabbar.
+- **Huy hiệu xu** 🪙 ở header (`nav-links`) và trong Hồ sơ.
+- **Màn quay**: nút ×1 / ×10, số dư, bộ đếm pity ("còn N lượt chắc chắn Sử thi"), nút "Tỉ lệ" mở `Modal` bảng 21.3.
+- **Hoạt cảnh**: phong bao lì xì rung, mở ra, phát sáng theo màu bậc; Huyền thoại có thêm rồng vàng (dùng lại `spirits.ts`). Có nút **Bỏ qua**, tôn trọng `prefers-reduced-motion`. ×10 hiện lưới 10 thẻ lật lần lượt. Âm dùng lại `sfx.unlock()`.
+- **Kết quả**: món mới có nút "Dùng ngay" (ghi settings); món trùng hiện "+N mảnh".
+- **Tiệm mảnh**: lưới đồ chưa có kèm giá mảnh, mua bằng `ConfirmButton`.
+- **Lịch sử quay**: 50 lượt gần nhất, chỉ lưu local (`np.gachaLog`), không sync.
+- **Modal kết quả ván** (`LocalGameScreen.tsx`, khối `.result-rewards`): thêm dòng "+37 🪙".
+- **Trang chủ**: thẻ "Quà hôm nay" nếu chưa nhận, kèm chuỗi ngày.
+- `ItemGrid`: món khóa hiện "Cần N trận thắng · hoặc tìm trong Bảo Khố".
+- i18n: thêm khóa vi / en / zh cho **mọi** chuỗi mới trong `apps/web/src/lib/i18n.ts`.
+- Cài đặt: công tắc "Hiện Bảo Khố".
+
+### 21.8 Gia cố
+- Thêm `resolveCosmetic(settings, progress)`: `Board` / `EffectCanvas` rơi về đồ mặc định nếu món đang chọn không sở hữu. Hiện chỉ trang Bộ sưu tập kiểm tra, nên khôi phục sao lưu có thể chọn đồ chưa mở.
+- `settings.unlockAll` (cờ dev) vẫn mở mọi thứ nhưng **không** tạo xu.
+
+### 21.9 Lộ trình (≈ 3 tuần) — G1–G6 đã làm, phát hành v0.2.0 (2026-10-13)
+| Bước | Việc | Xong khi |
+|---|---|---|
+| G1 | `economy.ts` + `mergeEconomy` + test (merge giao hoán, lũy đẳng, không cộng trùng xu thành tựu, số dư âm) | test xanh |
+| G2 | `gacha.ts` + pity + ×10 + test (100k lượt có seed: tỉ lệ lệch < 0.3%; pity 10/50 không bao giờ vượt; trùng → mảnh đúng bậc) | test xanh |
+| G3 | Nguồn xu: `recordAiGame` cộng xu, quà ngày, xu thành tựu, quà chào mừng; `normalize` điền mặc định | ván thắng hiện +xu |
+| G4 | UI Bảo Khố: màn quay, hoạt cảnh, bảng tỉ lệ, Tiệm mảnh, lịch sử, huy hiệu xu, thẻ quà ngày | quay được trên mobile |
+| G5 | Đồ độc quyền: khung danh hiệu, lời chiếu tướng, âm quân; `resolveCosmetic` | dùng được sau khi quay |
+| G6 | Đồng bộ & sao lưu: zod, migration 0004, `db.ts`, backup v2; README, CHANGELOG `[Unreleased]`, cập nhật §8.5 | sao lưu/khôi phục giữ đủ đồ & xu |
+| Sau | Đòn kết liễu Huyền thoại; sự kiện "tăng tỉ lệ" theo mùa (Tết: bàn Hoa đào rate‑up) | — |
+
+Phát hành dự kiến **v0.2.0** (bump `package.json` gốc + `apps/web`).
+
+### 21.10 Kiểm chứng
+- `pnpm typecheck && pnpm test && pnpm build` xanh.
+- Test thuần trong `packages/shared/test/` (G1, G2).
+- Thủ công (không có e2e): `pnpm dev:web` → thắng máy → thấy +xu → quay ×1 / ×10 → dùng món mới → sao lưu → xóa localStorage → khôi phục → số dư và đồ còn nguyên; mở 2 tab, merge không tăng xu.
+- Nếu bật online: `pnpm dev:api` + `db:migrate:local`, kiểm tra PUT `/api/me/progress` nhận và trả `economy`.
+
+### 21.11 Rủi ro
+| Rủi ro | Cách xử lý |
+|---|---|
+| Xu bị nhân đôi hoặc mất khi merge | PN‑counter theo thiết bị + xu thành tựu tính từ tập; test tính chất merge |
+| Gacha lấn át cảm giác "thắng để mở" | Đường thắng giữ nguyên; tỉ lệ Huyền thoại thấp; có thể tắt Bảo Khố |
+| Payload sync phình to | Giới hạn zod; `dailyDays` cắt 40 ngày; lịch sử quay chỉ lưu local |
+| Hoạt cảnh nặng trên máy yếu | Bỏ qua được, reduced‑motion, theo bậc hiệu ứng hiện tại |

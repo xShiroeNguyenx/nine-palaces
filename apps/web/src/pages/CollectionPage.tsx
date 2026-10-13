@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Position, INITIAL_FEN, iccsToSquare, type GameEvent } from '@np/rules';
 import { PATTERNS, type PatternKind } from '@np/patterns';
 import { Board } from '../board/Board';
@@ -7,7 +8,10 @@ import { EffectBanner } from '../game/components';
 import {
   ACHIEVEMENTS,
   BOARD_SKINS,
+  CHECK_CALLS,
+  FRAMES,
   FX_TIERS,
+  MOVE_SOUNDS,
   PIECE_SETS,
   isUnlocked,
   type FxTier,
@@ -18,23 +22,32 @@ import { useProgress } from '../lib/progress';
 import { api } from '../lib/session';
 import { useSettings } from '../lib/settings';
 import { useT } from '../lib/i18n';
+import { MOVE_SOUND } from '../lib/sound';
+import { TitleFrame } from '../game/economyUi';
+import { GachaTab } from './GachaTab';
 
-type Tab = 'boards' | 'pieces' | 'fx' | 'achievements' | 'patterns';
+type Tab = 'gacha' | 'boards' | 'pieces' | 'fx' | 'extras' | 'achievements' | 'patterns';
 
 const START = Position.fromFen(INITIAL_FEN).board;
 
 export function CollectionPage() {
-  const [tab, setTab] = useState<Tab>('boards');
   const progress = useProgress((s) => s.progress);
   const s = useSettings();
   const t = useT();
+  // Tab nằm trên URL (?tab=gacha) để huy hiệu xu trên thanh điều hướng mở thẳng Bảo Khố
+  const [search, setSearch] = useSearchParams();
   const tabs: [Tab, string][] = [
+    ...(s.gacha ? ([['gacha', '🧧 ' + t('Bảo Khố')]] as [Tab, string][]) : []),
     ['boards', t('Bàn cờ')],
     ['pieces', t('Quân cờ')],
     ['fx', t('Hiệu ứng')],
+    ['extras', t('Phụ kiện')],
     ['achievements', t('Thành tựu')],
     ['patterns', t('Thế cờ')],
   ];
+  const asked = search.get('tab') as Tab | null;
+  const tab: Tab = asked && tabs.some(([id]) => id === asked) ? asked : 'boards';
+  const setTab = (id: Tab) => setSearch(id === 'boards' ? {} : { tab: id }, { replace: true });
   return (
     <div className="page">
       <h1>{t('Bộ sưu tập')}</h1>
@@ -65,6 +78,28 @@ export function CollectionPage() {
         />
       )}
       {tab === 'fx' && <FxTab />}
+      {tab === 'gacha' && <GachaTab />}
+      {tab === 'extras' && (
+        <>
+          <h2>{t('Khung danh hiệu')}</h2>
+          <ItemGrid items={FRAMES} selected={s.frame} onSelect={(id) => s.update({ frame: id })} render={(id) => <div className="extra-preview"><TitleFrame frame={id}>{t('Kỳ thủ')}</TitleFrame></div>} />
+          <h2>{t('Lời chiếu tướng')}</h2>
+          <ItemGrid items={CHECK_CALLS} selected={s.checkCall} onSelect={(id) => s.update({ checkCall: id })} render={(id) => <div className="extra-preview"><span className="gacha-call">{CHECK_CALLS.find((c) => c.id === id)!.name}</span></div>} />
+          <h2>{t('Âm quân')}</h2>
+          <ItemGrid
+            items={MOVE_SOUNDS}
+            selected={s.moveSound}
+            onSelect={(id) => s.update({ moveSound: id })}
+            render={(id) => (
+              <div className="extra-preview">
+                <button className="btn small" onClick={() => MOVE_SOUND[id]()}>
+                  🔊 {t('Nghe thử')}
+                </button>
+              </div>
+            )}
+          />
+        </>
+      )}
       {tab === 'achievements' && (
         <div className="room-list">
           {ACHIEVEMENTS.map((a) => {
@@ -96,6 +131,7 @@ function ItemGrid<T extends string>(props: {
 }) {
   const progress = useProgress((s) => s.progress);
   const unlockAll = useSettings((s) => s.unlockAll);
+  const gacha = useSettings((s) => s.gacha);
   return (
     <div className="item-grid">
       {props.items.map((it) => {
@@ -115,7 +151,14 @@ function ItemGrid<T extends string>(props: {
               </button>
             ) : (
               <div className="small accent">
-                Cần {it.wins} trận thắng{it.achievement ? ' hoặc thành tựu' : ''} (còn {Math.max(0, it.wins - progress.unlockWins)})
+                {Number.isFinite(it.wins) ? (
+                  <>
+                    Cần {it.wins} trận thắng{it.achievement ? ' hoặc thành tựu' : ''} (còn {Math.max(0, it.wins - progress.unlockWins)})
+                    {gacha && ' · hoặc tìm trong Bảo Khố'}
+                  </>
+                ) : (
+                  'Chỉ có trong Bảo Khố'
+                )}
               </div>
             )}
           </div>
@@ -176,6 +219,7 @@ function FxTab() {
               {!open && (
                 <div className="small accent">
                   Cần {t.wins} trận thắng{t.achievement ? ' hoặc thành tựu Bất bại' : ''}
+                  {s.gacha && ' · hoặc tìm trong Bảo Khố'}
                 </div>
               )}
             </div>

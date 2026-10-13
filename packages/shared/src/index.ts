@@ -3,6 +3,10 @@
  * Schema kiểm tra dữ liệu (zod) nằm ở `@np/shared/schemas` — chỉ server dùng.
  */
 import type { GameEvent, GameResult } from '@np/rules';
+import { EMPTY_ECONOMY, mergeEconomy, normalizeEconomy, type Economy } from './economy';
+
+export * from './economy';
+export * from './gacha';
 
 export type SideName = 'red' | 'black';
 
@@ -165,6 +169,8 @@ export interface ProgressData {
   bestStreak: number;
   /** Mã thành tựu đã đạt (hợp nhất bằng phép hợp) */
   achievements: string[];
+  /** Ví xu, mảnh, đồ sở hữu của gacha (mục 21) */
+  economy: Economy;
 }
 
 export const EMPTY_PROGRESS: ProgressData = {
@@ -176,6 +182,7 @@ export const EMPTY_PROGRESS: ProgressData = {
   streak: 0,
   bestStreak: 0,
   achievements: [],
+  economy: EMPTY_ECONOMY,
 };
 
 /** Hợp nhất tiến trình: không bao giờ thu hồi mở khóa */
@@ -191,6 +198,7 @@ export function mergeProgress(a: ProgressData, b: ProgressData): ProgressData {
     streak: Math.max(a.streak, b.streak),
     bestStreak: Math.max(a.bestStreak, b.bestStreak),
     achievements: [...new Set([...(a.achievements ?? []), ...(b.achievements ?? [])])],
+    economy: mergeEconomy(normalizeEconomy(a.economy), normalizeEconomy(b.economy)),
   };
 }
 

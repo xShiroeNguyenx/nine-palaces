@@ -93,6 +93,7 @@ export function SettingsPage() {
         <Toggle label="2 người 1 máy: tự xoay bàn theo lượt" checked={s.autoFlipHotseat} onChange={(v) => s.update({ autoFlipHotseat: v })} />
         <Toggle label="Banner tên thế cờ (Pháo đầu, Bá vương xe…)" checked={s.patternBanners} onChange={(v) => s.update({ patternBanners: v })} />
         <Toggle label="Online: cho phép đi trước (premove) khi chưa tới lượt" checked={s.premove} onChange={(v) => s.update({ premove: v })} />
+        <Toggle label="Hiện Bảo Khố và số xu (quay đồ trang trí bằng xu kiếm trong game)" checked={s.gacha} onChange={(v) => s.update({ gacha: v })} />
       </section>
       <section className="card">
         <h2>Luyện Trình</h2>

@@ -27,6 +27,8 @@ import { useLocalGame, useTicker } from './useLocalGame';
 import { useT } from '../lib/i18n';
 import { usePatterns } from './usePatterns';
 import { useLeaveGuard } from '../lib/leaveGuard';
+import { titleOf } from '../lib/cosmetics';
+import { TitleFrame } from './economyUi';
 import {
   ActLabel,
   ConfirmButton,
@@ -501,7 +503,12 @@ export function LocalGameScreen(props: LocalGameScreenProps) {
         </p>
         {aiOutcome && (
           <div className="result-rewards">
-            <div>+{aiOutcome.xpGained} XP</div>
+            <div>
+              +{aiOutcome.xpGained} XP{settings.gacha && <> · +{aiOutcome.coinsGained} 🪙</>}
+            </div>
+            <div className="small">
+              <TitleFrame>{titleOf(useProgress.getState().progress.xp).name}</TitleFrame>
+            </div>
             {aiOutcome.unlockedLevel && (
               <div className="unlock">
                 🔓 Mở khóa cấp {aiOutcome.unlockedLevel}: {LEVELS[aiOutcome.unlockedLevel - 1]!.name}

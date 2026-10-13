@@ -1,6 +1,7 @@
 /** Schema kiểm tra dữ liệu (zod) — chỉ server dùng, để gói web không phải tải zod */
 import { z } from 'zod';
 import type { ClientMessage, LobbyClientMessage, ProgressData, RoomSettings, TimeControl } from './index';
+import { DAILY_KEEP, EMPTY_ECONOMY, type Economy } from './economy';
 
 export const TimeControlSchema: z.ZodType<TimeControl> = z
   .object({
@@ -32,6 +33,29 @@ export const ClientMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('clock:ping'), t: z.number() }),
 ]) satisfies z.ZodType<ClientMessage>;
 
+const MAX_DEVICES = 64;
+
+/** Bộ đếm theo thiết bị: giới hạn số thiết bị để payload không phình */
+const DeviceCounter = z
+  .record(z.string().max(40), z.number().int().min(0).max(1e9))
+  .refine((r) => Object.keys(r).length <= MAX_DEVICES, 'too_many_devices');
+
+export const EconomySchema = z.object({
+  owned: z.array(z.string().max(40)).max(300),
+  earned: DeviceCounter,
+  spent: DeviceCounter,
+  shardsIn: DeviceCounter,
+  shardsOut: DeviceCounter,
+  pity: z
+    .record(
+      z.string().max(40),
+      z.object({ pulls: z.number().int().min(0).max(1e9), sinceEpic: z.number().int().min(0).max(1000), sinceLegend: z.number().int().min(0).max(1000) }),
+    )
+    .refine((r) => Object.keys(r).length <= MAX_DEVICES, 'too_many_devices'),
+  dailyDays: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).max(DAILY_KEEP),
+  claims: z.array(z.string().max(40)).max(50),
+}) satisfies z.ZodType<Economy, z.ZodTypeDef, unknown>;
+
 export const ProgressSchema = z.object({
   xp: z.number().int().min(0),
   totalWins: z.number().int().min(0),
@@ -41,6 +65,7 @@ export const ProgressSchema = z.object({
   streak: z.number().int().min(0),
   bestStreak: z.number().int().min(0),
   achievements: z.array(z.string().max(40)).max(200).default([]),
+  economy: EconomySchema.default(EMPTY_ECONOMY),
 }) satisfies z.ZodType<ProgressData, z.ZodTypeDef, unknown>;
 
 export const LobbyClientSchema = z.discriminatedUnion('type', [

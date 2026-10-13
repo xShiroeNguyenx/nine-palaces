@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { BoardSkinId, FxTier, PieceSetId } from './cosmetics';
+import type { BoardSkinId, CheckCallId, FrameId, FxTier, MoveSoundId, PieceSetId } from './cosmetics';
 import { load, save } from './storage';
 
 export type PieceStyle = PieceSetId;
@@ -12,6 +12,11 @@ export interface Settings {
   pieceStyle: PieceStyle;
   boardSkin: BoardSkinId;
   fxTier: FxTier;
+  frame: FrameId;
+  checkCall: CheckCallId;
+  moveSound: MoveSoundId;
+  /** Hiện Bảo Khố (gacha) và số xu */
+  gacha: boolean;
   sound: boolean;
   vibrate: boolean;
   coordinates: boolean;
@@ -28,10 +33,14 @@ export interface Settings {
   unlockAll: boolean;
 }
 
-const DEFAULTS: Settings = {
+export const DEFAULTS: Settings = {
   pieceStyle: 'han',
   boardSkin: 'wood',
   fxTier: 'basic',
+  frame: 'none',
+  checkCall: 'default',
+  moveSound: 'default',
+  gacha: true,
   sound: true,
   vibrate: true,
   coordinates: true,

@@ -1,5 +1,6 @@
 import type { GameEvent, PieceName } from '@np/rules';
 import { useSettings } from './settings';
+import type { MoveSoundId } from './cosmetics';
 
 /**
  * Âm thanh tổng hợp bằng Web Audio API: không cần file âm thanh, không lo bản quyền.
@@ -54,11 +55,33 @@ function noise(dur: number, gain = 0.3, delay = 0, filterFreq = 1200) {
   src.start(t);
 }
 
-export const sfx = {
-  move: () => {
+/** Âm đi quân theo đồ "Âm quân" (Bảo Khố) */
+export const MOVE_SOUND: Record<MoveSoundId, () => void> = {
+  default: () => {
     noise(0.07, 0.5, 0, 2500);
     tone(220, 0.06, 'triangle', 0.12);
   },
+  stone: () => {
+    noise(0.09, 0.7, 0, 900);
+    tone(120, 0.1, 'sine', 0.22);
+  },
+  bamboo: () => {
+    tone(880, 0.05, 'square', 0.05);
+    tone(620, 0.09, 'triangle', 0.14, 0.01);
+  },
+  jade: () => {
+    tone(1568, 0.35, 'sine', 0.07);
+    tone(2349, 0.25, 'sine', 0.04, 0.02);
+  },
+  bell: () => {
+    tone(523, 0.9, 'sine', 0.1);
+    tone(1046, 0.6, 'sine', 0.05);
+    tone(1318, 0.4, 'sine', 0.03);
+  },
+};
+
+export const sfx = {
+  move: () => (MOVE_SOUND[useSettings.getState().moveSound] ?? MOVE_SOUND.default)(),
   capture: () => {
     noise(0.12, 0.7, 0, 1800);
     tone(140, 0.15, 'triangle', 0.25);
@@ -132,6 +155,19 @@ export const sfx = {
   /** Mở khóa vật phẩm */
   unlock: () => [659, 880, 1175].forEach((f, i) => tone(f, 0.25, 'sine', 0.12, i * 0.09)),
   notify: () => tone(880, 0.12, 'sine', 0.1),
+  /** Bảo Khố: phong bao rung */
+  shake: () => {
+    for (let i = 0; i < 4; i++) noise(0.05, 0.35, i * 0.12, 1600);
+  },
+  /** Bảo Khố: mở phong bao, cao dần theo độ hiếm (0 Thường → 3 Huyền thoại) */
+  reveal: (tier: number) => {
+    const base = [523, 587, 659, 784][tier] ?? 523;
+    [1, 1.25, 1.5, 2].slice(0, 2 + tier).forEach((m, i) => tone(base * m, 0.4, 'triangle', 0.1, i * 0.08));
+    if (tier >= 3)
+      setTimeout(() => {
+        sfx.fanfare();
+      }, 300);
+  },
 };
 
 const CHECK_SOUND: Record<PieceName, () => void> = {
